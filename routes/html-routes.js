@@ -140,6 +140,7 @@ module.exports = function(app) {
     // linkedin-signup - renders sign-up page to register a new profile
     app.get('/linkedin-signup', function(req, res) {
         var linkedinUser = require('../services/checkForLinkedInUser')(req);
+<<<<<<< HEAD
         
         if(req.user._json.pictureUrls.values[0]==undefined){
             res.render('sign-up', {
@@ -159,6 +160,16 @@ module.exports = function(app) {
             });
         }
         
+=======
+
+        res.render('sign-up', {
+            user: req.user,
+            linkedinUser,
+            img_url: req.user._json.pictureUrls.values ? req.user._json.pictureUrls.values[0] : '',
+            title: 'Register Your Profile',
+            authentication: req.isAuthenticated()
+        });
+>>>>>>> e7be3815095d08497cf7df3503fec5738dee00cf
     });
     
     // signup-submit - posts a new profile to db
