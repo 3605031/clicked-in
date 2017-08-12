@@ -4,13 +4,13 @@ var LocalStrategy = require('passport-local').Strategy;
 var bcrypt = require('bcrypt-nodejs');
 
 module.exports = function(app) {
-
-
+    
+    
     // root route - runs Sequelize findAll() to show all profiles
     app.get('/', function(req, res) {
-
+        
         var linkedinUser = require('../services/checkForLinkedInUser')(req);
-
+        
         if (req.isAuthenticated()) {
             db.profile.findOne({
                 'where': {
@@ -51,11 +51,11 @@ module.exports = function(app) {
             });
         }
     });
-
+    
     app.get('/viewprofile/:profileId?', function(req, res) {
-
+        
         var linkedinUser = require('../services/checkForLinkedInUser')(req);
-
+        
         db.profile.findOne({
             'where': {
                 'id': req.params.profileId
@@ -88,13 +88,13 @@ module.exports = function(app) {
             }
         }); // <-- profile.findOne
     });
-
+    
     app.get('/viewmyprofile', function(req, res) {
-
+        
         //If logged in
         if (req.isAuthenticated()) {
             var linkedinUser = require('../services/checkForLinkedInUser')(req);
-
+            
             db.profile.findOne({
                 where: {
                     $or: [
@@ -136,23 +136,34 @@ module.exports = function(app) {
             }); // <-- profile.findOne
         }
     });
-
+    
     // linkedin-signup - renders sign-up page to register a new profile
     app.get('/linkedin-signup', function(req, res) {
         var linkedinUser = require('../services/checkForLinkedInUser')(req);
-
-        res.render('sign-up', {
-            user: req.user,
-            linkedinUser,
-            img_url: req.user._json.pictureUrls.values[0],
-            title: 'Register Your Profile',
-            authentication: req.isAuthenticated()
-        });
+        
+        if(req.user._json.pictureUrls.values[0]==undefined){
+            res.render('sign-up', {
+                user: req.user,
+                linkedinUser,
+                //img_url: req.user._json.pictureUrls.values[0],
+                title: 'Register Your Profile',
+                authentication: req.isAuthenticated()
+            });
+        } else {
+            res.render('sign-up', {
+                user: req.user,
+                linkedinUser,
+                //img_url: req.user._json.pictureUrls.values[0],
+                title: 'Register Your Profile',
+                authentication: req.isAuthenticated()
+            });
+        }
+        
     });
-
+    
     // signup-submit - posts a new profile to db
     app.post('/signup-submit', function(req, res) {
-
+        
         db.profile.create({
             'username': req.body.username,
             'name': req.body.name,
@@ -164,14 +175,14 @@ module.exports = function(app) {
             'personal_url': req.body.personal_url,
             'linkedin_id': req.user.id,
         }).then(profile => {
-
+            
             // use helper function to separate skills & projects from req.body
             var separateFields = require('../services/separateFields')(req.body, profile.dataValues.id);
-
+            
             // create new skills rows in corresponding tables
             db.Skill.create(separateFields.skills);
             // db.backend_skill.create(separateFields.backEnd);
-
+            
             // create new project(s)
             separateFields.projects.forEach(project => {
                 db.Project.create(project);
@@ -180,12 +191,12 @@ module.exports = function(app) {
             res.redirect('/');
         });
     });
-
+    
     app.get('/linkedin/signout', (req, res) => {
         req.logout();
         res.redirect('/');
     });
-
+    
     // For Authentication Purposes
     app.get('/login', function(req, res) {
         if (req.isAuthenticated()) {
@@ -195,7 +206,7 @@ module.exports = function(app) {
             res.sendFile(path.join(__dirname + '/login.html'));
         }
     });
-
+    
     //Send back data through /myprofile url after User is logged in
     app.get('/myprofile', function(req, res) {
         if (req.isAuthenticated()) {
@@ -204,17 +215,17 @@ module.exports = function(app) {
             res.redirect("/login")
         }
     });
-
+    
     //User name and password sign up
     app.get('/signup', function(req, res) {
         var linkedinUser = require('../services/checkForLinkedInUser')(req);
-
+        
         res.render('local-sign-up', {
             linkedinUser,
             'user': req.user
         });
     });
-
+    
     app.post("/register", function(req, res) {
         console.log(req.body.username);
         console.log(req.body.password);
@@ -229,14 +240,14 @@ module.exports = function(app) {
             'github_url': req.body.github_url,
             'personal_url': req.body.personal_url,
         }).then(profile => {
-
+            
             // use helper function to separate skills & projects from req.body
             var separateFields = require('../services/separateFields')(req.body, profile.dataValues.id);
-
+            
             // create new skills rows in corresponding tables
             db.Skill.create(separateFields.skills);
             // db.backend_skill.create(separateFields.backEnd);
-
+            
             // create new project(s)
             separateFields.projects.forEach(project => {
                 db.Project.create(project);
@@ -245,16 +256,16 @@ module.exports = function(app) {
             res.redirect('/');
         });
     });
-
+    
     app.post("/endorsement", function(req, res) {
         //var endorsed_username = ....
         var endorser;
         var endorsed_username;
-
+        
         //If logged in
         if (req.isAuthenticated()) {
             var linkedinUser = require('../services/checkForLinkedInUser')(req);
-
+            
             db.profile.findOne({
                 where: {
                     $or: [
@@ -268,15 +279,15 @@ module.exports = function(app) {
                 }
             }).then(function(endorser) {
                 var endorsed = false,
-                    endorsed_ppl = '';
-
+                endorsed_ppl = '';
+                
                 console.log("To be endorsed user: " + req.body.username);
                 console.log("Logged in user: " + endorser.username);
-
+                
                 if (endorser.endorsed_people) {
                     endorsed_ppl = endorser.endorsed_people.split(",");
                 }
-
+                
                 //Check if endorsed before
                 for (i = 0; i < endorsed_ppl.length; i++) {
                     console.log(endorsed_ppl[i])
@@ -284,7 +295,7 @@ module.exports = function(app) {
                         endorsed = true;
                     }
                 }
-
+                
                 //+1 to endorsed username if not endorsed already by endorser
                 if (endorsed === false) {
                     db.profile.findOne({
@@ -299,7 +310,7 @@ module.exports = function(app) {
                             endorsements: ++total_endorsements
                         });
                     });
-
+                    
                     //Add to list of endorsed people by logged in user
                     db.profile.findOne({
                         where: {
@@ -319,7 +330,7 @@ module.exports = function(app) {
                         } else {
                             endorsed_people += req.body.username + ",";
                         }
-
+                        
                         profile.updateAttributes({
                             endorsed_people: endorsed_people
                         }).then(function() {
